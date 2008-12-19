@@ -11,7 +11,6 @@ end
 
 class Grid
   def initialize(cells)
-    # Need to do a deep copy of the cells array
     @cells = cells.clone
     @dimension = Math::sqrt(@cells.length).to_i
     @stride = Math::sqrt(@dimension).to_i
