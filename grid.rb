@@ -14,8 +14,6 @@ class Grid
     @dimension = Math::sqrt(cell_array.length).to_i
     @stride = Math::sqrt(@dimension).to_i
     @possible_values = (1..@dimension).to_a
-    @all_rows = (0...@dimension).to_a # 0..8 for a 9x9 grid
-    @all_cols = (0...@dimension).to_a # 0..8 for a 9x9 grid
 
     # Make hash of cells
     @cells = Hash.new
@@ -125,9 +123,9 @@ class Grid
   def to_s
     str = String.new
     
-    @dimension.times do |row|
-      str << @all_cols.map { |col| @cells[index_for(row, col)].to_s }.join(' ')
-      str << "\n"
+    @cells.keys.sort.each do |index|
+      str << (@cells[index].nil? ? '_' : @cells[index].to_s)
+      str << (index % @dimension == @dimension - 1 ? "\n" : ' ')
     end
 
     str
