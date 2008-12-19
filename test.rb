@@ -4,9 +4,9 @@ require 'grid'
 class GridTester < Test::Unit::TestCase
   def test_grid_valid
     grid = Grid::load("grids/easy_grid.txt")
-    assert_equal(9, grid.get(0, 0))
-    assert_equal(8, grid.get(0, 1))
-    assert_equal(nil, grid.get(1, 0))
+    assert_equal(9, grid[0, 0])
+    assert_equal(8, grid[0, 1])
+    assert_equal(nil, grid[1, 0])
   end
   
   def test_unused_values_for_row
@@ -45,17 +45,17 @@ class GridTester < Test::Unit::TestCase
     assert_equal(grid.unused_values_for_cell(2, 0), [6, 7])
 
     # Fill in cells with only one valid option
-    grid.set(1, 1, 1)
-    grid.set(1, 2, 6)
+    grid[1, 1] = 1
+    grid[1, 2] = 6
     
     assert_equal(grid.unused_values_for_cell(1, 0), [4])
-    grid.set(1, 0, 4)
+    grid[1, 0] = 4
     
     assert_equal(grid.unused_values_for_cell(2, 0), [7])
-    grid.set(2, 0, 7)
+    grid[2, 0] = 7
     
     assert_equal(grid.unused_values_for_cell(0, 2), [5])
-    grid.set(0, 2, 5)
+    grid[0, 2] = 5
   end
   
   def test_solve_easy_grid
@@ -74,9 +74,9 @@ class GridTester < Test::Unit::TestCase
     assert_equal true, grid.solvable?
     assert_equal [2, 8, 9], grid.unused_values_for_cell(1,3)
     
-    grid.set(7,3,8)
-    grid.set(8,3,9)
-    grid.set(0,4,2)
+    grid[7, 3] = 8
+    grid[8, 3] = 9
+    grid[0, 4] = 2
     
     assert_equal [], grid.unused_values_for_cell(1,3)
     assert_equal false, grid.solvable?
@@ -106,11 +106,11 @@ class GridTester < Test::Unit::TestCase
      puts grid.to_s
    end
 
-   def test_solve_super_hard_grid
-     puts "running super hard grid"
-     grid = Grid::load("grids/super_hard_grid.txt")
-     grid.solve
-     puts "solved grid:"
-     puts grid.to_s
-   end
+   # def test_solve_super_hard_grid
+   #   puts "running super hard grid"
+   #   grid = Grid::load("grids/super_hard_grid.txt")
+   #   grid.solve
+   #   puts "solved grid:"
+   #   puts grid.to_s
+   # end
 end

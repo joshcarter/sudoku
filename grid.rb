@@ -12,8 +12,8 @@ end
 class Grid
   def initialize(cells)
     # Need to do a deep copy of the cells array
-    @cells = Marshal.load(Marshal.dump(cells))
-    @dimension = (@cells[0].length)
+    @cells = cells.clone
+    @dimension = Math::sqrt(@cells.length).to_i
     @stride = Math::sqrt(@dimension).to_i
     @possible_values = (1..@dimension).to_a
   end
@@ -27,26 +27,14 @@ class Grid
       end
     end
     
-    Grid.new(cells)
+    Grid.new(cells.flatten)
   end
   
   # Used for loading grids with everything one line, 0 in place of nulls
   def self.load_line(filename)
     line = File::readlines(filename)[0]
-    flat_cells = line.split('')
-    
-    # Assume 9x9 grid
-    cells = Array.new
-    9.times do
-      row = Array.new
-      9.times do
-        cell = flat_cells.shift.to_i
-        cell = nil if cell == 0
-        row << cell
-      end
-      cells << row
-    end
-    
+    cells = line.split('')
+    cells.map { |cell| cell == 0 ? nil : cell.to_i }    
     Grid.new(cells)
   end
   
@@ -59,7 +47,7 @@ class Grid
   def to_s
     str = String.new
     
-    each_cell_with_index do |cell, row, col|
+    each_cell do |cell, row, col|
       str << (cell ? cell.to_s : '_')
       str << (col == @dimension - 1 ? "\n" : " ")
     end
@@ -67,32 +55,22 @@ class Grid
     str
   end
   
-  def get(row, col)
-    @cells[row][col]
+  def [](row, col)
+    @cells[row * @dimension + col]
   end
   
-  def set(row, col, value)
-    @cells[row][col] = value
+  def []=(row, col, value)
+    @cells[row * @dimension + col] = value
   end
   
   def each_cell
-    @cells.each do |row|
-      row.each do |cell|
-        yield cell
-      end
-    end
-  end
-  
-  def each_cell_with_index
-    @cells.each_with_index do |row, row_num|
-      row.each_with_index do |cell, col_num|
-        yield cell, row_num, col_num
-      end
+    @cells.each_with_index do |cell, cell_num|
+      yield cell, (cell_num / @dimension), (cell_num % @dimension)
     end
   end
 
   def solved?
-    each_cell do |cell|
+    each_cell do |cell, row, col|
       return false if cell.nil?
     end
     
@@ -100,7 +78,7 @@ class Grid
   end
   
   def solvable?
-    each_cell_with_index do |cell, row, col|
+    each_cell do |cell, row, col|
       return false if (cell.nil? and unused_values_for_cell(row, col) == [])
     end
     
@@ -110,7 +88,7 @@ class Grid
   def unused_values_for_row(row)
     values = []
 
-    each_cell_with_index do |cell, current_row, current_col|
+    each_cell do |cell, current_row, current_col|
       values << cell unless cell.nil? or current_row != row
     end
 
@@ -120,7 +98,7 @@ class Grid
   def unused_values_for_col(col)
     values = []
 
-    each_cell_with_index do |cell, current_row, current_col|
+    each_cell do |cell, current_row, current_col|
       values << cell unless cell.nil? or current_col != col
     end
 
@@ -135,7 +113,7 @@ class Grid
     values = []
     requested_zone = zone_for(row, col)
 
-    each_cell_with_index do |cell, current_row, current_col|
+    each_cell do |cell, current_row, current_col|
       values << cell unless cell.nil? or
                             zone_for(current_row, current_col) != requested_zone
     end
@@ -153,13 +131,13 @@ class Grid
     loop do
       changes = 0
       
-      each_cell_with_index do |cell, row, col|
+      each_cell do |cell, row, col|
         if cell.nil?
           possible_values = unused_values_for_cell(row, col)
 
           if (possible_values.length == 1)
             # puts "solve_determinate_cells: (#{row}, #{col}) = #{possible_values.first}"
-            set(row, col, possible_values.first)
+            self[row, col] = possible_values.first
             changes += 1
           end
         end
@@ -179,7 +157,7 @@ class Grid
     # Create a list of cells that are empty, and the number of possible
     # values for each
     open_cells = Array.new
-    each_cell_with_index do |cell, row, col|
+    each_cell do |cell, row, col|
       if cell.nil?
         open_cells << { :row => row, :col => col, :num_values => unused_values_for_cell(row, col).length }
       end
@@ -199,7 +177,7 @@ class Grid
         # puts "trying (#{row}, #{col}) = #{value}"
 
         new_grid = Grid::new(@cells)
-        new_grid.set(row, col, value)
+        new_grid[row, col] = value
         # puts new_grid
         new_grid.solve_with_guesses
 
