@@ -54,3 +54,30 @@ end
 
 printer = RubyProf::GraphPrinter.new(result)
 printer.print(STDOUT, 0)
+
+#
+# Test hash with int keys
+# Total Time: 
+#
+h = Hash.new
+
+9.times do |j|
+  9.times do |i|
+    h[j * 9 + i] = 'foo'
+  end
+end
+
+keys = h.keys.sort
+
+result = RubyProf.profile do
+  foo = nil
+
+  1000.times do 
+    keys.each do |key|
+      foo = h[key]
+    end
+  end
+end
+
+printer = RubyProf::GraphPrinter.new(result)
+printer.print(STDOUT, 0)
