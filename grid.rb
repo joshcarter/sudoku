@@ -1,33 +1,24 @@
-class Solved < Exception
-  attr_reader :cells
-  
-  def initialize(cells)
-    @cells = cells
-  end
-end
-
-class Unsolvable < Exception
-end
-
 class Grid
-  def initialize(cells)
-    # Need to do a deep copy of the cells array
-    @cells = Marshal.load(Marshal.dump(cells))
-    @dimension = (@cells[0].length)
-    @stride = Math::sqrt(@dimension).to_i
-    @possible_values = (1..@dimension).to_a
+  def initialize(cells, stride)
+    @cells = cells
+    @stride = stride
+    @dimension = (stride * stride)
   end
 
   def self.load(filename)
     lines = File::readlines(filename)
+    stride = Math::sqrt(lines[0].split.length).to_i
 
     cells = lines.map do |line|
       line.split.map do |cell| 
         cell == '_' ? nil : cell.to_i
       end
     end
+
+    # Should do some assertions in here that each 
+    # line has correct number of elements
     
-    Grid.new(cells)
+    Grid.new(cells, stride)
   end
   
   def save(filename)
@@ -70,138 +61,99 @@ class Grid
       end
     end
   end
-
+  
   def solved?
     each_cell do |cell|
-      return false if cell.nil?
-    end
-    
-    return true
-  end
-  
-  def solvable?
-    each_cell_with_index do |cell, row, col|
-      return false if (cell.nil? and unused_values_for_cell(row, col) == [])
+      return false if cell == nil
     end
     
     return true
   end
 
-  def unused_values_for_row(row)
-    values = []
-
-    each_cell_with_index do |cell, current_row, current_col|
-      values << cell unless cell.nil? or current_row != row
-    end
-
-    @possible_values - values
+  def invalid_for_row(row)
+    row_contents = @cells[row].clone
+    row_contents.compact
   end
 
-  def unused_values_for_col(col)
-    values = []
-
-    each_cell_with_index do |cell, current_row, current_col|
-      values << cell unless cell.nil? or current_col != col
-    end
-
-    @possible_values - values
-  end
-
-  def zone_for(row, col)
-    [row / @stride, col / @stride]
-  end
-
-  def unused_values_for_zone(row, col)
-    values = []
-    requested_zone = zone_for(row, col)
-
-    each_cell_with_index do |cell, current_row, current_col|
-      values << cell unless cell.nil? or
-                            zone_for(current_row, current_col) != requested_zone
-    end
-
-    @possible_values - values
+  def valid_for_row(row)
+    all_options = Array.new(@dimension) { |i| i + 1 }
+    all_options - invalid_for_row(row)
   end
   
-  def unused_values_for_cell(row, col)
-    unused_values_for_row(row) &
-    unused_values_for_col(col) &
-    unused_values_for_zone(row, col)
+  def invalid_for_col(col)
+    col_contents = Array.new
+    
+    for row in 0...@dimension
+      col_contents << @cells[row][col]
+    end
+    
+    col_contents.compact
   end
   
-  def solve_determinate_cells
+  def valid_for_col(col)
+    all_options = Array.new(@dimension) { |i| i + 1 }
+    all_options - invalid_for_col(col)
+  end
+  
+  def range_containing_cell(cell)
+    base = 0
+    
+    @stride.times do
+      for i in base...(base + @stride)
+        if (i == cell)
+          return Array.new(@stride) { |i| base + i }
+        end
+      end
+      
+      base += @stride
+    end
+  end
+  
+  def valid_for_square(row, col)
+    all_options = Array.new(@dimension) { |i| i + 1 }
+    square_contains = Array.new
+    
+    range_containing_cell(row).each do |row|
+      range_containing_cell(col).each do |col|
+        if (@cells[row][col])
+          square_contains << @cells[row][col]
+        end
+      end
+    end
+    
+    all_options - square_contains
+  end
+  
+  def valid_for_cell(row, col)
+    # Note: using & for array union here, not bitwise AND
+    valid_for_row(row) & valid_for_col(col) & valid_for_square(row, col)
+  end
+  
+  def solve
+    iteration = 1
+    
     loop do
       changes = 0
       
       each_cell_with_index do |cell, row, col|
-        if cell.nil?
-          possible_values = unused_values_for_cell(row, col)
+        if cell == nil
+          possible_values = valid_for_cell(row, col)
 
           if (possible_values.length == 1)
-            # puts "solve_determinate_cells: (#{row}, #{col}) = #{possible_values.first}"
-            set(row, col, possible_values.first)
+            set(row, col, possible_values[0])
             changes += 1
           end
         end
       end
 
-      break if changes == 0
-    end
-  end
-  
-  def solve_with_guesses
-    solve_determinate_cells
-
-    raise Unsolvable unless solvable?
-
-    # Create a list of cells that are empty, and the number of possible
-    # values for each
-    open_cells = Array.new
-    each_cell_with_index do |cell, row, col|
-      if cell.nil?
-        open_cells << { :row => row, :col => col, :num_values => unused_values_for_cell(row, col).length }
+      if solved?
+        puts "solved in #{iteration} iterations"
+        return self
+      elsif changes == 0
+        throw "cannot solve grid"
+      else
+        iteration += 1
       end
-    end
-
-    # Sort that list so that the cells with least possible values are first
-    open_cells.sort_by { |tuple| tuple[:num_values] }
-
-    first_cell = open_cells.first
-    puts "starting with cell (#{first_cell[:row]}, #{first_cell[:col]}) because it has #{first_cell[:num_values]} values"
-
-    open_cells.each do |tuple|
-      row = tuple[:row]
-      col = tuple[:col]
-      possible_values = unused_values_for_cell(row, col)
-
-      # puts "possible values for (#{row}, #{col}): #{possible_values.join(', ')}"
-
-      possible_values.each do |value|
-        begin
-          puts "trying (#{row}, #{col}) = #{value}"
-
-          new_grid = Grid::new(@cells)
-          new_grid.set(row, col, value)
-          puts new_grid
-          new_grid.solve_with_guesses
-
-          # Bail out to top-level solve
-          raise Solved.new(new_grid.instance_variable_get(:@cells))
-        rescue Unsolvable
-          puts "unsolvable"
-        end
-      end
-    end
-
-    raise Unsolvable unless solved?
-  end
-  
-  def solve
-    begin
-      solve_with_guesses
-    rescue Solved => e
-      # Copy over cells from solved grid
-      @cells = e.cells
     end
   end
 end
