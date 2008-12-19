@@ -30,6 +30,26 @@ class Grid
     Grid.new(cells)
   end
   
+  # Used for loading grids with everything one line, 0 in place of nulls
+  def self.load_line(filename)
+    line = File::readlines(filename)[0]
+    flat_cells = line.split('')
+    
+    # Assume 9x9 grid
+    cells = Array.new
+    9.times do
+      row = Array.new
+      9.times do
+        cell = flat_cells.shift.to_i
+        cell = nil if cell == 0
+        row << cell
+      end
+      cells << row
+    end
+    
+    Grid.new(cells)
+  end
+  
   def save(filename)
     File::open(filename, "w") do |file|
       file.print self
@@ -172,23 +192,21 @@ class Grid
     row = open_cells.first[:row]
     col = open_cells.first[:col]
     possible_values = unused_values_for_cell(row, col)
-    puts "starting with cell (#{row}, #{col}) because it has #{possible_values.length} values"
-
-    # puts "possible values for (#{row}, #{col}): #{possible_values.join(', ')}"
+    # puts "starting with cell (#{row}, #{col}) because it has #{possible_values.length} values"
 
     possible_values.each do |value|
       begin
-        puts "trying (#{row}, #{col}) = #{value}"
+        # puts "trying (#{row}, #{col}) = #{value}"
 
         new_grid = Grid::new(@cells)
         new_grid.set(row, col, value)
-        puts new_grid
+        # puts new_grid
         new_grid.solve_with_guesses
 
         # Bail out to top-level solve
         raise Solved.new(new_grid.instance_variable_get(:@cells))
       rescue Unsolvable
-        puts "unsolvable"
+        # puts "unsolvable"
       end
     end
 

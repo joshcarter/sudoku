@@ -105,4 +105,12 @@ class GridTester < Test::Unit::TestCase
      puts "solved grid:"
      puts grid.to_s
    end
+
+   def test_solve_super_hard_grid
+     puts "running super hard grid"
+     grid = Grid::load("grids/super_hard_grid.txt")
+     grid.solve
+     puts "solved grid:"
+     puts grid.to_s
+   end
 end
