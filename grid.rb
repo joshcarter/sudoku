@@ -27,24 +27,24 @@ class Grid
     # Figure out peers for each cell
     @peers = Hash.new
     
-    @all_rows.each do |row|
-      @all_cols.each do |col|
+    @dimension.times do |row|
+      @dimension.times do |col|
         index = index_for(row, col)
         @peers[index] = Array.new
 
         # All cells in same row
-        @all_rows.each do |peer_row|
+        @dimension.times do |peer_row|
           @peers[index] << index_for(peer_row, col)
         end
         
         # All cells in same column
-        @all_cols.each do |peer_col|
+        @dimension.times do |peer_col|
           @peers[index] << index_for(row, peer_col)
         end
         
         # All cells in same zone
-        @all_rows.each do |peer_row|
-          @all_cols.each do |peer_col|
+        @dimension.times do |peer_row|
+          @dimension.times do |peer_col|
             if (peer_row / @stride == row / @stride) and (peer_col / @stride == col / @stride)
               @peers[index] << index_for(peer_row, peer_col)
             end
@@ -125,7 +125,7 @@ class Grid
   def to_s
     str = String.new
     
-    @all_rows.each do |row|
+    @dimension.times do |row|
       str << @all_cols.map { |col| @cells[index_for(row, col)].to_s }.join(' ')
       str << "\n"
     end
