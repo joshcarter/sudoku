@@ -10,11 +10,86 @@ class Unsolvable < Exception
 end
 
 class Grid
-  def initialize(cells)
-    @cells = cells.clone
-    @dimension = Math::sqrt(@cells.length).to_i
+  def initialize(cell_array)
+    @dimension = Math::sqrt(cell_array.length).to_i
     @stride = Math::sqrt(@dimension).to_i
     @possible_values = (1..@dimension).to_a
+    @all_rows = ('A'...("" << (?A + @dimension))).to_a # A..I for a 9x9 grid
+    @all_cols = (0...@dimension).to_a                 # 0..8 for a 9x9 grid
+
+    # Make hash of cells
+    @cells = Hash.new
+    
+    @all_rows.each_with_index do |row_letter, row|
+      @all_cols.each do |col|
+        coordinate = row_letter + col.to_s
+        @cells[coordinate] = cell_array[(row * @dimension) + col]
+      end
+    end
+    
+    # Figure out peers for each cell
+    @peers = Hash.new
+    
+    @all_rows.each_with_index do |row_letter, row|
+      @all_cols.each do |col|
+        coordinate = row_letter + col.to_s
+        @peers[coordinate] = Array.new
+
+        # All cells in same row
+        @all_rows.each do |peer_row|
+          @peers[coordinate] << peer_row + col.to_s
+        end
+        
+        # All cells in same column
+        @all_cols.each do |peer_col|
+          @peers[coordinate] << row_letter + peer_col.to_s
+        end
+        
+        # All cells in same zone
+        @all_rows.each_with_index do |peer_row_letter, peer_row|
+          @all_cols.each do |peer_col|
+            if (peer_row / @stride == row / @stride) and (peer_col / @stride == col / @stride)
+              @peers[coordinate] << peer_row_letter + peer_col.to_s
+            end
+          end
+        end
+        
+        # Remove duplicates and remove ourself
+        @peers[coordinate] = @peers[coordinate].uniq - [coordinate]
+      end
+    end
+
+    # Calculate options for each unknown cell
+    @cells.each_key do |coordinate|
+      find_possible_values(coordinate)
+    end
+  end
+  
+  def coordinate_for(row, col)
+    row + col.to_s
+  end
+  
+  def find_possible_values(coordinate)
+    value = @cells[coordinate]
+
+    if value.nil? or value.class == Array
+      used_values = Array.new
+      
+      @peers[coordinate].each do |peer|
+        peer_value = @cells[peer]
+        used_values << peer_value if (peer_value.class == Fixnum)
+      end
+      
+      values = @possible_values - used_values
+      
+      if (values.length == 0)
+        raise Unsolvable("no possible values for #{coordinate}")
+      elsif (values.length == 1)
+        @cells[coordinate] = values.first
+      else
+        @cells[coordinate] = values
+      end
+    end
   end
 
   def self.load(filename)
@@ -46,7 +121,7 @@ class Grid
   def to_s
     str = String.new
     
-    each_cell do |cell, row, col|
+    @cells.each_pair do |coordinate, value|
       str << (cell ? cell.to_s : '_')
       str << (col == @dimension - 1 ? "\n" : " ")
     end
@@ -54,12 +129,12 @@ class Grid
     str
   end
   
-  def [](row, col)
-    @cells[row * @dimension + col]
+  def [](coordinate)
+    @cells[coordinate]
   end
   
-  def []=(row, col, value)
-    @cells[row * @dimension + col] = value
+  def []=(coordinate, value)
+    @cells[coordinate] = value
   end
   
   def each_cell
