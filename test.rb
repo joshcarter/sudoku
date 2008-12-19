@@ -98,11 +98,11 @@ class GridTester < Test::Unit::TestCase
     puts grid.to_s
    end
    
-   # def test_solve_hard_grid
-   #   puts "running hard grid"
-   #   grid = Grid::load("grids/hard_grid.txt")
-   #   grid.solve
-   #   puts "solved grid:"
-   #   puts grid.to_s
-   # end
+   def test_solve_hard_grid
+     puts "running hard grid"
+     grid = Grid::load("grids/hard_grid.txt")
+     grid.solve
+     puts "solved grid:"
+     puts grid.to_s
+   end
 end

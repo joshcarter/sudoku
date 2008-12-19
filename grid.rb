@@ -151,6 +151,8 @@ class Grid
   
   def solve_with_guesses
     solve_determinate_cells
+    
+    return if solved?
 
     raise Unsolvable unless solvable?
 
@@ -166,30 +168,27 @@ class Grid
     # Sort that list so that the cells with least possible values are first
     open_cells.sort_by { |tuple| tuple[:num_values] }
 
-    first_cell = open_cells.first
-    puts "starting with cell (#{first_cell[:row]}, #{first_cell[:col]}) because it has #{first_cell[:num_values]} values"
+    # Start there and recurse
+    row = open_cells.first[:row]
+    col = open_cells.first[:col]
+    possible_values = unused_values_for_cell(row, col)
+    puts "starting with cell (#{row}, #{col}) because it has #{possible_values.length} values"
 
-    open_cells.each do |tuple|
-      row = tuple[:row]
-      col = tuple[:col]
-      possible_values = unused_values_for_cell(row, col)
+    # puts "possible values for (#{row}, #{col}): #{possible_values.join(', ')}"
 
-      # puts "possible values for (#{row}, #{col}): #{possible_values.join(', ')}"
+    possible_values.each do |value|
+      begin
+        puts "trying (#{row}, #{col}) = #{value}"
 
-      possible_values.each do |value|
-        begin
-          puts "trying (#{row}, #{col}) = #{value}"
+        new_grid = Grid::new(@cells)
+        new_grid.set(row, col, value)
+        puts new_grid
+        new_grid.solve_with_guesses
 
-          new_grid = Grid::new(@cells)
-          new_grid.set(row, col, value)
-          puts new_grid
-          new_grid.solve_with_guesses
-
-          # Bail out to top-level solve
-          raise Solved.new(new_grid.instance_variable_get(:@cells))
-        rescue Unsolvable
-          puts "unsolvable"
-        end
+        # Bail out to top-level solve
+        raise Solved.new(new_grid.instance_variable_get(:@cells))
+      rescue Unsolvable
+        puts "unsolvable"
       end
     end
 
