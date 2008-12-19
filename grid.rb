@@ -124,9 +124,9 @@ class Grid
   end
   
   def unused_values_for_cell(row, col)
-    (unused_values_for_row(row) &
-     unused_values_for_col(col) &
-     unused_values_for_zone(row, col)).uniq.sort
+    unused_values_for_row(row) &
+    unused_values_for_col(col) &
+    unused_values_for_zone(row, col)
   end
   
   def solve_determinate_cells
@@ -154,25 +154,41 @@ class Grid
 
     raise Unsolvable unless solvable?
 
+    # Create a list of cells that are empty, and the number of possible
+    # values for each
+    open_cells = Array.new
     each_cell_with_index do |cell, row, col|
       if cell.nil?
-        possible_values = unused_values_for_cell(row, col)
+        open_cells << { :row => row, :col => col, :num_values => unused_values_for_cell(row, col).length }
+      end
+    end
 
-        # puts "possible values for (#{row}, #{col}): #{possible_values.join(', ')}"
+    # Sort that list so that the cells with least possible values are first
+    open_cells.sort_by { |tuple| tuple[:num_values] }
 
-        possible_values.each do |value|
-          begin
-            puts "trying (#{row}, #{col}) = #{value}"
+    first_cell = open_cells.first
+    puts "starting with cell (#{first_cell[:row]}, #{first_cell[:col]}) because it has #{first_cell[:num_values]} values"
 
-            new_grid = Grid::new(@cells)
-            new_grid.set(row, col, value)
-            new_grid.solve_with_guesses
+    open_cells.each do |tuple|
+      row = tuple[:row]
+      col = tuple[:col]
+      possible_values = unused_values_for_cell(row, col)
 
-            # Bail out to top-level solve
-            raise Solved.new(new_grid.instance_variable_get(:@cells))
-          rescue Unsolvable
-            puts "unsolvable"
-          end
+      # puts "possible values for (#{row}, #{col}): #{possible_values.join(', ')}"
+
+      possible_values.each do |value|
+        begin
+          puts "trying (#{row}, #{col}) = #{value}"
+
+          new_grid = Grid::new(@cells)
+          new_grid.set(row, col, value)
+          puts new_grid
+          new_grid.solve_with_guesses
+
+          # Bail out to top-level solve
+          raise Solved.new(new_grid.instance_variable_get(:@cells))
+        rescue Unsolvable
+          puts "unsolvable"
         end
       end
     end
