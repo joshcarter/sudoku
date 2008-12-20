@@ -1,3 +1,4 @@
+# Exception class used internally by the solver.
 class Solved < Exception
   attr_reader :cells
   
@@ -6,12 +7,38 @@ class Solved < Exception
   end
 end
 
+# Exception thrown by Grid#solve() and Grid#[]= if grid is unsolvable.
 class Unsolvable < Exception
 end
 
 # Sudoku grid. Easiest way to populate one is from a file; see load() and 
 # load_line(). Grid will automatically solve cells which can only logically
-# have one value. Call Grid#solve() to search unknown cells for solution.
+# have one value. Call solve() to search unknown cells for the solution.
+#
+# Some details on implementation: Each solved cell contains a single value,
+# each unsolved cell contains an array of possible values. (Coming into 
+# initialize() those unsolved cells contain nil.) Taking a cue from Peter
+# Norvig [1], setting any cell causes all peer cells to update their list of
+# possible values. If any of these cells reduce to a single value, that'll
+# cause its peers to recalculate, and so on. Simple grids can be entirely
+# solved in this manner.
+#
+# Another important note is that the grid contains a map of every cell's
+# index to a flat array of all its peers (same row, same column, same zone).
+# This map is computed in initialize() so that the constraint operation
+# (above) can operate very quickly. The peer map is large, so it is not
+# copied in dup(), nor does it need to be, because it's the same for all
+# grids of the same dimensions.
+#
+# Early versions of this class were much more dynamic, and would compute
+# peers and possible values on the fly. Doing it that was was elegant (in
+# a way) but also extremely slow -- it took an hour to solve the grid in
+# grids/super_hard_grid.txt. Most of the time was spent iterating over the
+# grid, which is what lead me to create the peer map. This version solves
+# the same grid in about 1.2 seconds, roughly a 3000x improvement.
+#
+# [1]: http://norvig.com/sudoku.html
+#
 class Grid
   # Create grid from array of cell values. Unknown cells should be nil.
   def initialize(cell_array)
@@ -167,7 +194,8 @@ class Grid
   end
   
   # Set cell value at index, forcing peers with unknown value to update
-  # their list of possible values.
+  # their list of possible values. Will throw Unsolvable if setting the
+  # cell makes the grid unsolvable.
   def []=(index, value)
     @cells[index] = value
     @peers[index].each { |peer| update_possible_values(peer) }
