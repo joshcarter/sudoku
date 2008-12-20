@@ -9,6 +9,9 @@ end
 class Unsolvable < Exception
 end
 
+# Sudoku grid. Easiest way to populate one is from a file; see load() and 
+# load_line(). Grid will automatically solve cells which can only logically
+# have one value. Call Grid#solve() to search unknown cells for solution.
 class Grid
   # Create grid from array of cell values. Unknown cells should be nil.
   def initialize(cell_array)
