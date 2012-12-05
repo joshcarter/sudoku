@@ -1,16 +1,19 @@
 require 'test/unit'
-require 'grid'
+require './grid'
 
 class GridTester < Test::Unit::TestCase
+  def log(s)
+    puts(s) if false
+  end
 
   # Test loading of grid and getting cells.
   def test_grid_valid
-    grid = Grid::load("grids/easy_grid.txt")  
+    grid = Grid::load("grids/easy_grid.txt")
     assert_equal 9, grid[0]
     assert_equal 8, grid[1]
     assert_equal 3, grid[79]
     assert_equal 2, grid[80]
-    
+
     # Check validity of peer list
     peers = grid.instance_variable_get(:@peers)
     assert_equal(
@@ -20,18 +23,18 @@ class GridTester < Test::Unit::TestCase
       [8, 17, 26, 35, 44, 53, 60, 61, 62, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
       peers[80].sort)
   end
-  
+
   # Test simple grid which can be solved simply with constraints, i.e. the
   # grid gets solved as a side-effect of loading it.
   def test_solve_easy_grid
-    puts "running easy grid"
+    log "running easy grid"
     grid = Grid::load("grids/easy_grid.txt")
 
     # Note: don't even need to run solve.
     assert_equal true, grid.solved?
-    
-    puts "solved grid:"
-    puts grid.to_s
+
+    log "solved grid:"
+    log grid.to_s
   end
 
   # Test getting grid into unsolvable state; the cell sets should fail.
@@ -49,29 +52,29 @@ class GridTester < Test::Unit::TestCase
 
   # Solve grid that involves some guessing.
   def test_solve_medium_grid
-    puts "running medium grid"
+    log "running medium grid"
     grid = Grid::load("grids/medium_grid.txt")
-  
+
     grid.solve
-    puts "solved grid:"
-    puts grid.to_s
+    log "solved grid:"
+    log grid.to_s
   end
 
   # Solve grid that involves more guessing.
   def test_solve_hard_grid
-    puts "running hard grid"
+    log "running hard grid"
     grid = Grid::load("grids/hard_grid.txt")
     grid.solve
-    puts "solved grid:"
-    puts grid.to_s
+    log "solved grid:"
+    log grid.to_s
   end
 
   # Solve grid that involves a whole bunch of guessing.
   def test_solve_super_hard_grid
-    puts "running super hard grid"
+    log "running super hard grid"
     grid = Grid::load("grids/super_hard_grid.txt")
     grid.solve
-    puts "solved grid:"
-    puts grid.to_s
+    log "solved grid:"
+    log grid.to_s
   end
 end
